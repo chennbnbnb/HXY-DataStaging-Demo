@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+</head>
+<body>
+    <div>测试输入框</div>
+    <label for="name">姓名<input class="staging" type="text" id="name"/></label>
+    <label for="address">地址<input class="staging" type="text" id="address"/></label>
+    <label for="comments">建议<textarea class="staging" id="comments" cols="30" rows="10"></textarea></label>
+    <script>
+        var ele = document.getElementsByClassName('staging');
+        var xhr = new XMLHttpRequest();
+        var id = window.localStorage.getItem('userId');
+        window.onload = function() {
+            console.log('id:',id);
+            xhr.open("POST","http://101.34.91.153:8080/staging/search",true);
+            xhr.setRequestHeader("Content-type","application/json");
+            xhr.send(JSON.stringify({id}));
+             // 监听onreadystatechange事件
+            xhr.onreadystatechange = function () {
+    //判断服务器返回的状态信息是否全等于4且http响应状态码是否等于200；
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                    //打印JSON字符串形式的服务器响应数据；
+                    console.log(xhr.responseText);
+                    var res = JSON.parse(xhr.responseText);
+                    for (var i = 0; i < ele.length; i++) {
+                        var item = ele[i];
+                        var key = item.id;
+                        if (res[key]){
+                            item.value = res[key];
+                        } 
+                    }
+                    //检测数据类型返回string
+                    console.log(typeof xhr.responseText);
+                }
+            }
+        }
+        //事件代理
+        const createThrottleProxy = function (fn,rate) {
+            var timer = null;
+            return new Proxy(fn, {
+                apply(target,thisArg,arguments){
+                    console.log('arguments',arguments);
+                    timer && (clearTimeout(timer),timer = null);
+                    timer = setTimeout(fn,rate,arguments);
+                    lastChange = new Date();
+                }
+            });
+        }
+        var handleChange = createThrottleProxy(function(){
+            var key = arguments[0];
+            console.log('arguments',arguments);
+            var value = document.getElementById(key).value;
+            console.log('value',value,'id',key);
+            //发送请求
+            var params = {
+                "id":id,
+                "data": {}
+            };
+            params.data[key] = value;
+            
+            xhr.open("POST","http://101.34.91.153:8080/staging/update",true);
+            xhr.setRequestHeader("Content-type","application/json");
+            xhr.send(JSON.stringify(params));
+        },1000)
+        var ele = document.getElementsByClassName('staging');
+        for (var i = 0; i < ele.length; i++) {
+            var item = ele[i];
+            //addEvent里的函数在触发事件的时候在执行
+            item.addEventListener('input',function(e){
+                var id = e.target.id;
+                handleChange(id)
+            })
+        }
+        
+    </script>
+</body>
+</html>
